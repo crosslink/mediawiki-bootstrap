@@ -2,6 +2,8 @@
 //Extension supports replacing "red links" to Wikipedia for wikification in other projects.
 if ( ! defined( 'MEDIAWIKI' ) )	die();
 
+$replaceRedLinkInstance = null;
+
 if ( defined( 'MW_SUPPORTS_PARSERFIRSTCALLINIT' ) ) {
 	$wgHooks['ParserFirstCallInit'][] = 'wfReplaceRedLinks';
 } else {
@@ -19,6 +21,10 @@ $wgExtensionCredits['parserhook'][] = array(
 		'description'  => 'Allows replacing "red links" to Wikipedia for wikification in other projects'
 );
 
+function redlinkHandler($matches) {
+	return "\" class=\"external text\"";
+}
+
 class ReplaceRedLinks {
 	var $SwitchOff = true;
 	var $lang = "en";
@@ -33,7 +39,7 @@ class ReplaceRedLinks {
 
 		//Hook for tag html tag
 		//see http://www.mediawiki.org/wiki/Manual:Tag_extensions for details
-		$wgParser->setHook( 'ReplaceRedLinks' , array( &$this, 'fnReplaceRedLinks' ) );
+// 		$wgParser->setHook( 'Re' , array( &$this, 'fnReplaceRedLinks' ) );
 		//function fnReplaceRedLinks) - is below
 
 		//Hook to ParserBeforeTidy event - "Used to process the nearly-rendered html code for the page (but before any html tidying occurs)"
@@ -73,49 +79,59 @@ class ReplaceRedLinks {
 	}
 	
 	public static function onParserBeforeTidy(&$parser, &$text) {
-		self::fnParserBeforeTidy($parser, $text);
+		//process links
+// 		/
+// 		(\"\/index\.php\?title\=)	# start of link
+// 		([^\&]+) 					# any text before &
+// 		(\&amp\;action\=edit)		# action=edit
+// 		(\&amp\;redlink\=1\")		# redlink=1
+// 			(\sclass\=\"new\")			# class=new
+// 			(\stitle\=\"[^\"]*\")		# title=
+// 			/x",
+// 		$redlinkPatern = "/(<a\s+[^<>]*href=\"|').*?redlink\=1.*?([^\"'#]+)([^<>]*<\/a>)/i";
+		$redlinkPatern = "/<a\s+[^<>]*href=[\"|']([^\&]+)(\&amp\;action\=edit\&amp\;redlink\=1).*?<\/a>/i";
+// 		$text=preg_replace_callback($redlinkPatern,
+// 				/* 'ReplaceRedLinks::ParseRedLinkCallback', */
+// 				array( __CLASS__, 'ParseRedLinkCallback' ),
+// 				$text);
+		
+		$text = preg_replace_callback($redlinkPatern,
+				'redlinkHandler',
+				$text);
 	}
 
-	static function fnParserBeforeTidy(&$parser, &$text){
+	function fnParserBeforeTidy(&$parser, &$text){
 		global $IP;
 		if($this->SwitchOff == true){
 			return true;
 		}
 
-		//process links
-		//(\"\/index\.php\?title\=)	# start of link
-		$text=preg_replace_callback("
-			/
-			([^\&]+) 					# any text before &
-			(\&amp\;action\=edit)		# action=edit
-			(\&amp\;redlink\=1\")		# redlink=1
-			(\sclass\=\"new\")			# class=new
-			(\stitle\=\"[^\"]*\")		# title=
-			/x",
-				array( __CLASS__, 'ParseRedLinkCallback' ),
-				$text);
-
+		self::onParserBeforeTidy($parser, $text);
+		
 		$this->SwitchOff = true; //to prevent drawing it in footer
 		return true;
 	}
 
 
-	static function ParseRedLinkCallback($matches){
-		$s=$matches[2];
-		$tt=trim(urldecode($s));
-		$tt=str_replace("_", " ", $tt);
+	function ParseRedLinkCallback($matches){
+		return "";
+// 		$s=$matches[2];
+// 		$tt=trim(urldecode($s));
+// 		$tt=str_replace("_", " ", $tt);
 
-		if (in_array(strtolower($tt), $this->exclusions)){
-			//there is exclusion
-			//do not modify anything
-			return $matches[0];
-		}
+// // 		if (in_array(strtolower($tt), $this->exclusions)){
+// // 			//there is exclusion
+// // 			//do not modify anything
+// // 			return $matches[0];
+// // 		}
 
-		return '"http://'.$this->lang.'.wikipedia.org/wiki/'.$s.'" title="'.$tt.' (Wikipedia)"';
+// 		return '"http://'.$this->lang.'.wikipedia.org/wiki/'.$s.'" title="'.$tt.' (Wikipedia)"';
 	}
 }
 
 function wfReplaceRedLinks() {
-	new ReplaceRedLinks;
+// 	if ($replaceRedLinkInstance === null)
+		$replaceRedLinkInstance = new ReplaceRedLinks;
+// 		apc_clear_cache();
 	return true;
 }

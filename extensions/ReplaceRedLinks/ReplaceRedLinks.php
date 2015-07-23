@@ -7,7 +7,7 @@ $wgRedLinkExclusion = array('Category:All_articles_with_dead_external_links');
 
 $replaceRedLinkInstance = null;
 $redlinkPatern = "/<a\s+[^<>]*href=[\"|']([^\&]+)(\&amp\;action\=edit\&amp\;redlink\=1)[^<>]*>/i";
-$wgExternalWikiHost = 'https://en.wikipedia.org';
+$wgExternalWikiHost = 'http://en.wikipedia.org';
 
 if ( defined( 'MW_SUPPORTS_PARSERFIRSTCALLINIT' ) ) {
 	$wgHooks['ParserFirstCallInit'][] = 'wfReplaceRedLinks';
@@ -28,7 +28,7 @@ $wgExtensionCredits['parserhook'][] = array(
 function redlinkHandler($matches) {
 	global $wgExternalWikiHost, $wgRedLinkExclusion;
 	
-	$url=$matches[1];
+	$url = $matches[1];
 	
 	$pos = 0;
 	
@@ -58,18 +58,19 @@ function redlinkHandler($matches) {
 	$tt=trim(urldecode($s));
 	$tt=str_replace("_", " ", $tt);
 
-	if (in_array(strtolower($tt), $wgRedLinkExclusion)){
-		//there is exclusion
-		//do not modify anything
-		return $matches[0];
-	}
+// 	if (in_array(strtolower($tt), $wgRedLinkExclusion)){
+// 		//there is exclusion
+// 		//do not modify anything
+// 		return $matches[0];
+// 	}
 	
 	// 		return '"http://'.$this->lang.'.wikipedia.org/wiki/'.$s.'" title="'.$tt.' (Wikipedia)"';
-	return '<a rel="nofollow" class="external text" href="'. $wgExternalWikiHost . "/wiki/$tt\">";
+	return "<a ref=\"nofollow\" class=\"external text\" href=\"" . $wgExternalWikiHost . "/wiki/$tt\">";
 }
 
 class ReplaceRedLinks {
-	var $SwitchOff = true;
+	var $switchOff = false;
+	
 	var $lang = "en";
 	var $exclusions=array();
 
@@ -82,77 +83,102 @@ class ReplaceRedLinks {
 
 		//Hook for tag html tag
 		//see http://www.mediawiki.org/wiki/Manual:Tag_extensions for details
-// 		$wgParser->setHook( 'Re' , array( &$this, 'fnReplaceRedLinks' ) );
-		//function fnReplaceRedLinks) - is below
+// 		$wgParser->setHook( 'p' , array( &$this, 'redlinkReplaceTrigger' ) );
+// 		$parser->setHook( 'mw' , 'ReplaceRedLinks::redlinkReplaceTrigger');
+		//function redlinkReplaceTrigger) - is below
 
 		//Hook to ParserBeforeTidy event - "Used to process the nearly-rendered html code for the page (but before any html tidying occurs)"
 		//see also http://www.mediawiki.org/wiki/Manual:Hooks/ParserBeforeTidy
 		//http://www.mediawiki.org/wiki/Manual:Hooks
-// 		$wgHooks['ParserBeforeTidy'][] = array( &$this, 'fnParserBeforeTidy' );
-		$wgHooks['ParserBeforeTidy'][] = 'ReplaceRedLinks::onParserBeforeTidy';
+		$wgHooks['ParserBeforeTidy'][] = array( &$this, 'onParserBeforeTidy' );
+// 		$wgHooks['ParserBeforeTidy'][] = 'ReplaceRedLinks::onParserBeforeTidy';
+// 		$wgHooks['ParserAfterTidy'][] = 'ReplaceRedLinks::onParserAfterTidy';
+// 		$wgHooks['ParserSectionCreate'][] = 'ReplaceRedLinks::onParserSectionCreate';
 		//function fnParserBeforeTidy() - is below
 	}
 
 	//
-	function fnReplaceRedLinks( $str, $argv, $parser ){
+	public function redlinkReplaceTrigger( $input, array $args, Parser $parser, PPFrame $frame ){
 		//tag <ReplaceRedLinks/> found
-		$this->SwitchOff = false;
+		$this->$switchOff = false;
 
-		//parameter "lang"
-		@$s=$argv['lang'];
-		if($s){
-			if (preg_match("/[a-z][a-z]/i", $s)) {
-				$this->lang = $s;
-			}else{
-				//unproper language - needed 2 letters - ru, en etc.
-			}
-		}
+// 		//parameter "lang"
+// 		@$s=$argv['lang'];
+// 		if($s){
+// 			if (preg_match("/[a-z][a-z]/i", $s)) {
+// 				$this->lang = $s;
+// 			}else{
+// 				//unproper language - needed 2 letters - ru, en etc.
+// 			}
+// 		}
 
-		//parameter "exclusions"
-		@$s=$argv['exclusions'];
-		$arr=array();
-		if($s){
-			$arr = explode("|", $s);
-		}
-		foreach($arr as $el){
-			$this->exclusions[]=trim(strtolower($el));
-		}
-
-		return $parser->recursiveTagParse($str);
+// 		//parameter "exclusions"
+// 		@$s=$argv['exclusions'];
+// 		$arr=array();
+// 		if($s){
+// 			$arr = explode("|", $s);
+// 		}
+// 		foreach($arr as $el){
+// 			$this->exclusions[]=trim(strtolower($el));
+// 		}
+		return htmlspecialchars( $input );
+// 		return $parser->recursiveTagParse($input);
 	}
 	
-	public static function onParserBeforeTidy(&$parser, &$text) {
+	public function replaceAllRedLinks(&$text) {
+		if($this->switchOff === true){
+			return true;
+		}
+		
 		global $redlinkPatern;
 		//process links
-// 		/
-// 		(\"\/index\.php\?title\=)	# start of link
-// 		([^\&]+) 					# any text before &
-// 		(\&amp\;action\=edit)		# action=edit
-// 		(\&amp\;redlink\=1\")		# redlink=1
-// 			(\sclass\=\"new\")			# class=new
-// 			(\stitle\=\"[^\"]*\")		# title=
-// 			/x",
-// 		$redlinkPatern = "/(<a\s+[^<>]*href=\"|').*?redlink\=1.*?([^\"'#]+)([^<>]*<\/a>)/i";
-// 		$redlinkPatern = "/<a\s+[^<>]*href=[\"|']([^\&]+)(\&amp\;action\=edit\&amp\;redlink\=1).*?<\/a>/i";
-// 		$text=preg_replace_callback($redlinkPatern,
-// 				/* 'ReplaceRedLinks::ParseRedLinkCallback', */
-// 				array( __CLASS__, 'ParseRedLinkCallback' ),
-// 				$text);
+		// 		/
+		// 		(\"\/index\.php\?title\=)	# start of link
+		// 		([^\&]+) 					# any text before &
+		// 		(\&amp\;action\=edit)		# action=edit
+		// 		(\&amp\;redlink\=1\")		# redlink=1
+		// 			(\sclass\=\"new\")			# class=new
+		// 			(\stitle\=\"[^\"]*\")		# title=
+		// 			/x",
+		// 		$redlinkPatern = "/(<a\s+[^<>]*href=\"|').*?redlink\=1.*?([^\"'#]+)([^<>]*<\/a>)/i";
+		// 		$redlinkPatern = "/<a\s+[^<>]*href=[\"|']([^\&]+)(\&amp\;action\=edit\&amp\;redlink\=1).*?<\/a>/i";
+		// 		$text=preg_replace_callback($redlinkPatern,
+		// 				/* 'this->ParseRedLinkCallback', */
+		// 				array( __CLASS__, 'ParseRedLinkCallback' ),
+		// 				$text);
 		
 		$text = preg_replace_callback($redlinkPatern,
 				'redlinkHandler',
 				$text);
+
+// 		this->$switchOff = true; //to prevent drawing it in footer
+		return true;
+	}
+	
+	public function onParserSectionCreate( $parser, $section, &$sectionContent, $showEditLinks ) {
+		global $redlinkPatern;
+		$sectionContent = preg_replace_callback($redlinkPatern,
+				'redlinkHandler',
+				$sectionContent);
+	}
+	
+	public function onParserAfterTidy(&$parser, &$text) {
+		return $this->replaceAllRedLinks($text);
+	}
+	
+	public function onParserBeforeTidy(&$parser, &$text) {
+		return $this->replaceAllRedLinks($text);
 	}
 
 	function fnParserBeforeTidy(&$parser, &$text){
 		global $IP;
-		if($this->SwitchOff == true){
+		if($this->$switchOff == true){
 			return true;
 		}
 
 		self::onParserBeforeTidy($parser, $text);
 		
-		$this->SwitchOff = true; //to prevent drawing it in footer
+		$this->$switchOff = true; //to prevent drawing it in footer
 		return true;
 	}
 
@@ -174,8 +200,7 @@ class ReplaceRedLinks {
 }
 
 function wfReplaceRedLinks() {
-// 	if ($replaceRedLinkInstance === null)
-		$replaceRedLinkInstance = new ReplaceRedLinks;
-// 		apc_clear_cache();
+		$replaceRedLinkInstance = new ReplaceRedLinks();
+// 		$wgHooks['ParserBeforeTidy'][] = array( &$replaceRedLinkInstance, 'onParserBeforeTidy' );
 	return true;
 }

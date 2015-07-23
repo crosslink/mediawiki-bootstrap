@@ -1,15 +1,19 @@
 <?php
+
 //Extension supports replacing "red links" to Wikipedia for wikification in other projects.
 if ( ! defined( 'MEDIAWIKI' ) )	die();
 
+$wgRedLinkExclusion = array('Category:All_articles_with_dead_external_links');
+
 $replaceRedLinkInstance = null;
+$redlinkPatern = "/<a\s+[^<>]*href=[\"|']([^\&]+)(\&amp\;action\=edit\&amp\;redlink\=1)[^<>]*>/i";
+$wgExternalWikiHost = 'http://en.wikipedia.org';
 
 if ( defined( 'MW_SUPPORTS_PARSERFIRSTCALLINIT' ) ) {
 	$wgHooks['ParserFirstCallInit'][] = 'wfReplaceRedLinks';
 } else {
 	$wgExtensionFunctions[] = 'wfReplaceRedLinks';
 }
-
 
 // Extension credits that will show up on the page [[Special:Version]]
 $wgExtensionCredits['parserhook'][] = array(
@@ -22,7 +26,46 @@ $wgExtensionCredits['parserhook'][] = array(
 );
 
 function redlinkHandler($matches) {
-	return "\" class=\"external text\"";
+	global $wgExternalWikiHost, $wgRedLinkExclusion;
+	
+	$url=$matches[1];
+	
+	$pos = 0;
+	
+	if (($pos = stripos($url, '//')) !== false) {
+		$pos += 2;
+	}
+	
+	if ($pos < strlen($url) && ($pos = stripos($url, '/')) !== false) {
+		$path = substr($url, $pos);
+	}
+	else {
+		$path = '/';
+	} 
+	
+	if (($pos = stripos($path, "title=")) !== false) {
+		$s = substr($path, $pos + 6);
+	}
+	else {
+		$pos = strrchr($path, '/');
+		
+		if ($pos === false)
+			$s = $path;
+		else 
+			$s = substr($path, $pos + 1);
+	}
+	
+	$tt=trim(urldecode($s));
+	$tt=str_replace("_", " ", $tt);
+
+	if (in_array(strtolower($tt), $wgRedLinkExclusion)){
+		//there is exclusion
+		//do not modify anything
+		return $matches[0];
+	}
+	
+	// 		return '"http://'.$this->lang.'.wikipedia.org/wiki/'.$s.'" title="'.$tt.' (Wikipedia)"';
+	return '<a href="'. $wgExternalWikiHost . "/wiki/$tt\" class=\"external text\">";
 }
 
 class ReplaceRedLinks {
@@ -79,6 +122,7 @@ class ReplaceRedLinks {
 	}
 	
 	public static function onParserBeforeTidy(&$parser, &$text) {
+		global $redlinkPatern;
 		//process links
 // 		/
 // 		(\"\/index\.php\?title\=)	# start of link
@@ -89,7 +133,7 @@ class ReplaceRedLinks {
 // 			(\stitle\=\"[^\"]*\")		# title=
 // 			/x",
 // 		$redlinkPatern = "/(<a\s+[^<>]*href=\"|').*?redlink\=1.*?([^\"'#]+)([^<>]*<\/a>)/i";
-		$redlinkPatern = "/<a\s+[^<>]*href=[\"|']([^\&]+)(\&amp\;action\=edit\&amp\;redlink\=1).*?<\/a>/i";
+// 		$redlinkPatern = "/<a\s+[^<>]*href=[\"|']([^\&]+)(\&amp\;action\=edit\&amp\;redlink\=1).*?<\/a>/i";
 // 		$text=preg_replace_callback($redlinkPatern,
 // 				/* 'ReplaceRedLinks::ParseRedLinkCallback', */
 // 				array( __CLASS__, 'ParseRedLinkCallback' ),

@@ -7,7 +7,7 @@ $wgRedLinkExclusion = array('Category:All_articles_with_dead_external_links');
 
 $replaceRedLinkInstance = null;
 $redlinkPatern = "/<a\s+[^<>]*href=[\"|']([^\&]+)(\&amp\;action\=edit\&amp\;redlink\=1)[^<>]*>/i";
-$wgExternalWikiHost = 'http://en.wikipedia.org';
+$wgExternalWikiHost = 'https://en.wikipedia.org';
 
 if ( defined( 'MW_SUPPORTS_PARSERFIRSTCALLINIT' ) ) {
 	$wgHooks['ParserFirstCallInit'][] = 'wfReplaceRedLinks';
@@ -65,7 +65,7 @@ function redlinkHandler($matches) {
 	}
 	
 	// 		return '"http://'.$this->lang.'.wikipedia.org/wiki/'.$s.'" title="'.$tt.' (Wikipedia)"';
-	return '<a href="'. $wgExternalWikiHost . "/wiki/$tt\" class=\"external text\">";
+	return '<a rel="nofollow" class="external text" href="'. $wgExternalWikiHost . "/wiki/$tt\">";
 }
 
 class ReplaceRedLinks {

@@ -93,7 +93,8 @@ class ReplaceRedLinks {
 		//http://www.mediawiki.org/wiki/Manual:Hooks
 // 		$wgHooks['ParserBeforeTidy'][] = array( &$this, 'onParserBeforeTidy' );
 // 		$wgHooks['ParserBeforeStrip'][] = array( &$this, 'onParserBeforeStrip' );
-		$wgHooks['OutputPageBeforeHTML'][] = array( &$this, 'onOutputPageBeforeHTML');
+// 		$wgHooks['OutputPageBeforeHTML'][] = array( &$this, 'onOutputPageBeforeHTML');
+		$wgHooks['LinkBegin'][] = array( &$this, 'onLinkBegin');
 // 		$wgHooks['ParserBeforeTidy'][] = 'ReplaceRedLinks::onParserBeforeTidy';
 // 		$wgHooks['ParserAfterTidy'][] = 'ReplaceRedLinks::onParserAfterTidy';
 // 		$wgHooks['ParserSectionCreate'][] = 'ReplaceRedLinks::onParserSectionCreate';
@@ -186,6 +187,28 @@ class ReplaceRedLinks {
 	public function onOutputPageBeforeHTML(OutputPage &$out, &$text ) {
 		$this->replaceAllRedLinks($text);
 		return $out;
+	}
+	
+	public function onLinkBegin( $dummy, $target, &$html, &$customAttribs, &$query,
+			&$options, &$ret ) {
+		if (!$target->isKnown()) {
+			global $wgMetaNamespace, $wgExternalWikiHost;
+			$dbKey = $target->getPrefixedDBkey();
+			
+			if (strlen($dbKey) > 0) {
+				$title = str_replace( '_', ' ', $dbKey ); //$target->getDBKey();
+				if ( strpos($title, $wgMetaNamespace) === false && $title[0] !== '#') {
+					$ret = Html::rawElement ( 'a', 
+							array ( 'href' => $wgExternalWikiHost . '/wiki/' . $title, 
+									'class' => 'external text',
+									'title' => $title . ' (Wikipedia)'
+									),
+							$title );
+					return false;
+				}
+			}
+		}
+		return true;
 	}
 
 	function fnParserBeforeTidy(&$parser, &$text){

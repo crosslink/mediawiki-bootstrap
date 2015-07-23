@@ -90,7 +90,7 @@ class ReplaceRedLinks{
 	}
  
  
-	public function ParseRedLinkCallback($matches){
+	public static function ParseRedLinkCallback($matches){
 		$s=$matches[2];
 		$tt=trim(urldecode($s));
 		$tt=str_replace("_", " ", $tt); 

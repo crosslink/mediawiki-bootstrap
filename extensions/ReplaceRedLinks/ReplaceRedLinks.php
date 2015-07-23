@@ -19,8 +19,16 @@ $wgExtensionCredits['parserhook'][] = array(
 	'url'          => 'https://www.mediawiki.org/wiki/Extension:ReplaceRedLinks',
 	'description'  => 'Allows replacing "red links" to Wikipedia for wikification in other projects'
 );
+
+function ParseRedLinkCallback($matches){
+	$s=$matches[2];
+	$tt=trim(urldecode($s));
+	$tt=str_replace("_", " ", $tt);
+
+	return '"http://'. 'en' .'.wikipedia.org/wiki/'.$s.'" class="external text" title="'.$tt.' (Wikipedia)"';
+}
  
-class ReplaceRedLinks{
+class ReplaceRedLinks {
 	var $SwitchOff = false;
 	var $lang = "en";
 	var $exclusions=array();
@@ -40,7 +48,7 @@ class ReplaceRedLinks{
 		//Hook to ParserBeforeTidy event - "Used to process the nearly-rendered html code for the page (but before any html tidying occurs)"
 		//see also http://www.mediawiki.org/wiki/Manual:Hooks/ParserBeforeTidy
 		//http://www.mediawiki.org/wiki/Manual:Hooks
-		$wgHooks['ParserBeforeTidy'][] = array( &$this, 'fnParserBeforeTidy' );
+		$wgHooks['ParserAfterTidy'][] = array( &$this, 'fnParserBeforeTidy' );
 		//function fnParserBeforeTidy() - is below
 	}
  
@@ -81,8 +89,8 @@ class ReplaceRedLinks{
 		//process links
 		// 			(\sclass\=\"new\")			# class=new
 // 			(\stitle\=\"[^\"]*\")		# title=
-		$text=preg_replace_callback('/(\"\/w\/index\.php\?title\=)([^\&]+)(\&amp\;action\=edit\&amp\;redlink\=1\")/x', 
-			array( __CLASS__, 'ParseRedLinkCallback' ), 
+		$text=preg_replace_callback('#[\"|\'](\/w\/index\.php\?title\=)([^\&]+)(\&amp\;action\=edit\&amp\;redlink\=1\")#'/* '/(\"\/w\/index\.php\?title\=)([^\&]+)(\&amp\;action\=edit\&amp\;redlink\=1\")/x' */, 
+			'ParseRedLinkCallback', 
 			$text);
 	
 // 		$this->SwitchOff = true; //to prevent drawing it in footer
@@ -90,7 +98,7 @@ class ReplaceRedLinks{
 	}
  
  
-	public function ParseRedLinkCallback($matches){
+	public static function ParseRedLinkCallback($matches){
 		$s=$matches[2];
 		$tt=trim(urldecode($s));
 		$tt=str_replace("_", " ", $tt); 

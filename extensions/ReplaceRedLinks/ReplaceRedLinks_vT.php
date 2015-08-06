@@ -201,6 +201,7 @@ class ReplaceRedLinks {
 					$ret = Html::rawElement ( 'a', 
 							array ( 'href' => $wgExternalWikiHost . '/wiki/' . $title, 
 									'class' => 'external text',
+									'rel' => 'nofollow',
 									'title' => $title . ' (Wikipedia)'
 									),
 							$title );

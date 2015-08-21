@@ -4,6 +4,7 @@
 if ( ! defined( 'MEDIAWIKI' ) )	die();
 
 $wgRedLinkExclusion = array('Category:All_articles_with_dead_external_links');
+$wgRedLinkExclusionKeywords = array();
 
 $replaceRedLinkInstance = null;
 $redlinkPatern = "#href=[\"|']([^\&]+)(\&amp\;action\=edit\&amp\;redlink\=1)#";
@@ -197,12 +198,25 @@ class ReplaceRedLinks {
 	public function onLinkBegin( $dummy, $target, &$html, &$customAttribs, &$query,
 			&$options, &$ret ) {
 		if (!$target->isKnown()) {
-			global $wgMetaNamespace, $wgExternalWikiHost;
+			global $wgMetaNamespace, $wgExternalWikiHost, $wgRedLinkExclusionKeywords;
 			$dbKey = $target->getPrefixedDBkey();
 			
 			if (strlen($dbKey) > 0) {
 				$title = str_replace( '_', ' ', $dbKey ); //$target->getDBKey();
-				if ( strpos($title, $wgMetaNamespace) === false && $title[0] !== '#') {
+				
+				$unRedIt = true;
+				
+				foreach ($wgRedLinkExclusionKeywords as $value) {
+					
+					if (stripos($title, $value) !== false) {
+						$unRedIt = false;
+						break;
+					}
+				}
+					
+				if ( $unRedIt === true
+						&& strpos($title, $wgMetaNamespace) === false
+						 && $title[0] !== '#') {
 					$ret = Html::rawElement ( 'a', 
 							array ( 'href' => $wgExternalWikiHost . '/wiki/' . $title, 
 									'class' => 'external text',
@@ -211,7 +225,8 @@ class ReplaceRedLinks {
 									),
 							$title );
 					return false;
-				}
+				}			
+				
 			}
 		}
 		return true;

@@ -74,9 +74,14 @@ class ReplaceRedLinks {
 	
 	var $lang = "en";
 	var $exclusions=array();
+	
 
 	function ReplaceRedLinks() { //Constructor
-		$this->setHooks();
+		// 		if (strpos($currentPageTitle, "Special:")		
+		if (RequestContext::getMain()->getTitle()->getNamespace() === 0) {
+
+			$this->setHooks();
+		}
 	}
 
 	function setHooks() {
